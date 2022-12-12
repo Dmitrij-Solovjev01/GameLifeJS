@@ -1,0 +1,23 @@
+td{
+    width: 5px;
+    height: 5px;
+}
+
+
+td.dead {
+    background-color: #000000;
+}
+
+td.live {
+    background-color: #FFFFFF;
+}
+
+td.active {
+  background-color: red
+}
+
+.buttons {
+	position: absolute;
+    top: 8px;
+    left: 650px          
+}

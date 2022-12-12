@@ -1,0 +1,256 @@
+<head>
+</head>
+<body>
+	<link rel="stylesheet" href="life.css">
+	<div class="buttons">
+		<button id="start"><span>Start</span></button>
+		<button id="clear"><span>Clear</span></button>
+		<button id="random"><span>Random</span></button>
+	</div>
+	
+	<div id="GRID"></div>
+	
+<script type="text/javascript">
+var rows = 128;
+var cols = rows;
+
+var run = false;
+
+let isDown = false
+let last_td = 0;
+
+var currStep = new Array(rows);
+var nextStep = new Array(rows);
+
+var timer;
+var dalayTime = 0;
+
+
+function changeBackground(color) {
+   document.body.style.background = color;
+}
+
+window.addEventListener("load",function() { changeBackground('gray') });
+
+document.body.addEventListener("mousedown", function () { isDown = true  });
+document.body.addEventListener("mouseup",   function () { isDown = false });
+
+document.getElementById("GRID").addEventListener("mousemove", function (evt) {
+  if (isDown && last_td != evt.target.id){
+	last_td = evt.target.id;
+	
+	var rowcol = last_td.split("_");
+	var row = rowcol[0];
+    var col = rowcol[1];
+	
+	var classes = evt.target.getAttribute("class");
+	if(classes.indexOf("live") > -1) {
+		evt.target.setAttribute("class", "dead");
+		currStep[row][col] = 0;
+	} else {
+		evt.target.setAttribute("class", "live");
+		currStep[row][col] = 1;
+	}
+  }
+})
+
+function resetStep() {
+    for (var i = 0; i < rows; i++) {
+	    currStep[i] = new Array(cols);
+        nextStep[i] = new Array(cols);
+        for (var j = 0; j < cols; j++) {
+            currStep[i][j] = 0;
+            nextStep[i][j] = 0;
+        }
+    }
+}
+
+function copyAndResetArr() {
+    for (var i = 0; i < rows; i++) {
+        for (var j = 0; j < cols; j++) {
+            currStep[i][j] = nextStep[i][j];
+            nextStep[i][j] = 0;
+        }
+    }
+}
+
+function createCanvas() {
+    var GRID = document.getElementById('GRID');
+
+    for (var i = 0; i < rows; i++) {
+        var row = document.createElement("tr");
+        for (var j = 0; j < cols; j++) {
+            var cell = document.createElement("td");
+            cell.setAttribute("id", i + "_" + j);
+            cell.setAttribute("class", "dead");
+            cell.onclick = ClickHandler;
+			cell
+            row.appendChild(cell);
+        }
+		GRID.appendChild(row);
+    }
+}
+
+function ClickHandler() {
+    var rowcol = this.id.split("_");
+    var row = rowcol[0];
+    var col = rowcol[1];
+    
+    var classes = this.getAttribute("class");
+    if(classes.indexOf("live") > -1) {
+        this.setAttribute("class", "dead");
+        currStep[row][col] = 0;
+    } else {
+        this.setAttribute("class", "live");
+        currStep[row][col] = 1;
+    }
+}
+
+function updateView() {
+    for (var i = 0; i < rows; i++) {
+        for (var j = 0; j < cols; j++) {
+            var cell = document.getElementById(i + "_" + j);
+            if (currStep[i][j] == 0) {
+                cell.setAttribute("class", "dead");
+            } else {
+                cell.setAttribute("class", "live");
+            }
+            }
+        }
+    }
+
+function setupButtons() {
+    var startButton = document.getElementById('start');
+    startButton.onclick = startButtonHandler;
+    
+    var clearButton = document.getElementById('clear');
+    clearButton.onclick = clearButtonHandler;
+    
+    var randomButton = document.getElementById("random");
+    randomButton.onclick = randomButtonHandler;
+}
+
+function randomButtonHandler() {
+    if (run) return;
+    clearButtonHandler();
+    for (var i = 0; i < rows; i++) {
+        for (var j = 0; j < cols; j++) {
+            var isLive = Math.round(Math.random());
+            if (isLive == 1) {
+                var cell = document.getElementById(i + "_" + j);
+                cell.setAttribute("class", "live");
+                currStep[i][j] = 1;
+            }
+        }
+    }
+}
+
+function clearButtonHandler() {
+    run = false;
+    var startButton = document.getElementById('start');
+    startButton.innerHTML = "Start";
+    clearTimeout(timer);
+    
+    var cellsList = document.getElementsByClassName("live");
+    
+	var cells = [];
+    for (var i = 0; i < cellsList.length; i++) {
+        cells.push(cellsList[i]);
+    }
+    
+    for (var i = 0; i < cells.length; i++) {
+        cells[i].setAttribute("class", "dead");
+    }
+	
+    resetStep();
+}
+
+function startButtonHandler() {
+    if (run) {
+        console.log("Pause the game");
+        run = false;
+        this.innerHTML = "Continue";
+        clearTimeout(timer);
+    } else {
+        console.log("Continue the game");
+        run = true;
+        this.innerHTML = "Pause";
+        play();
+    }
+}
+
+function computeNextGen() {
+    for (var i = 0; i < rows; i++) {
+        for (var j = 0; j < cols; j++) {
+            CheckRules(i, j);
+        }
+    }
+    
+    copyAndResetArr();
+    updateView();
+}
+
+function CheckRules(row, col) {
+    var numNeighbors = countNeighbors(row, col);
+    if (currStep[row][col] == 1) {
+        if (numNeighbors < 2) {
+            nextStep[row][col] = 0;
+        } else if (numNeighbors == 2 || numNeighbors == 3) {
+            nextStep[row][col] = 1;
+        } else {
+            nextStep[row][col] = 0;
+        }
+    } else if (currStep[row][col] == 0 && numNeighbors == 3) {
+		nextStep[row][col] = 1;
+    }
+}
+    
+function countNeighbors(row, col) {
+    var count = 0;
+	
+    if (row-1 >= 0 &&
+		currStep[row-1][col] == 1) count++;
+
+    if (row-1 >= 0 && col-1 >= 0 &&
+		currStep[row-1][col-1] == 1) count++;
+
+    if (row-1 >= 0 && col+1 < cols &&
+		currStep[row-1][col+1] == 1) count++;
+    
+	if (col-1 >= 0 &&
+		currStep[row][col-1] == 1) count++;
+
+    if (col+1 < cols &&
+		currStep[row][col+1] == 1) count++;
+		
+    if (row+1 < rows &&
+		currStep[row+1][col] == 1) count++;
+		
+    if (row+1 < rows && col-1 >= 0 &&
+		currStep[row+1][col-1] == 1) count++;
+		
+    if (row+1 < rows && col+1 < cols &&
+		currStep[row+1][col+1] == 1) count++;
+	
+    return count;
+}
+
+
+function init() {
+    createCanvas();
+    resetStep();
+    setupButtons();
+}
+
+function play() {
+    computeNextGen();
+    
+    if (run) {
+        timer = setTimeout(play, dalayTime);
+    }
+}
+
+window.onload = init;
+
+</script>
+</body>
